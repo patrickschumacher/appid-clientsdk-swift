@@ -24,16 +24,20 @@ public class AppID {
 
     public static var overrideServerHost: String?
     public static var overrideAttributesHost: String?
+    public static var secAttrAccess: SecAttrAccessible = .accessibleAfterFirstUnlock
     public static var sharedInstance = AppID()
     internal static let logger =  Logger.logger(name: AppIDConstants.AppIDLoggerName)
 
-    static public let REGION_US_SOUTH = ".ng.bluemix.net"
-    static public let REGION_US_EAST = ".us-east.bluemix.net"
-    static public let REGION_UK = ".eu-gb.bluemix.net"
-    static public let REGION_SYDNEY = ".au-syd.bluemix.net"
-    static public let REGION_GERMANY = ".eu-de.bluemix.net"
+    static public let REGION_US_SOUTH = "https://us-south.appid.cloud.ibm.com"
+    static public let REGION_US_SOUTH_STAGE1 = "https://us-south.appid.test.cloud.ibm.com"
+    static public let REGION_US_EAST = "https://us-east.appid.cloud.ibm.com"
+    static public let REGION_UK = "https://eu-gb.appid.cloud.ibm.com"
+    static public let REGION_UK_STAGE1 = "https://eu-gb.appid.test.cloud.ibm.com"
+    static public let REGION_SYDNEY = "https://au-syd.appid.cloud.ibm.com"
+    static public let REGION_GERMANY = "https://eu-de.appid.cloud.ibm.com"
+    static public let REGION_TOKYO = "https://jp-tok.appid.cloud.ibm.com"
 
-    internal init() {}
+    public init() {}
 
     /**
         Intializes the App ID instance
@@ -72,21 +76,24 @@ public class AppID {
             tokenResponseDelegate: tokenResponseDelegate)
     }
 
-    @available(*, deprecated: 3.0, renamed: "signinAnonymously")
+    @available(swift, deprecated: 3.0, renamed: "signinAnonymously")
     public func loginAnonymously(accessTokenString:String? = nil, allowCreateNewAnonymousUsers: Bool = true, authorizationDelegate:AuthorizationDelegate) {
         self.signinAnonymously(accessTokenString: accessTokenString, allowCreateNewAnonymousUsers: allowCreateNewAnonymousUsers, authorizationDelegate: authorizationDelegate)
     }
 
-    @available(*, deprecated: 3.0, renamed: "signinWithResourceOwnerPassword")
+    @available(swift, deprecated: 3.0, renamed: "signinWithResourceOwnerPassword")
     public func obtainTokensWithROP(_ accessTokenString:String? = nil, username: String, password: String, tokenResponseDelegate:TokenResponseDelegate) {
         self.signinWithResourceOwnerPassword(accessTokenString, username: username,
                                              password: password, tokenResponseDelegate: tokenResponseDelegate)
     }
 
-
-
-	public func application(_ application: UIApplication, open url: URL, options :[UIApplicationOpenURLOptionsKey: Any]) -> Bool {
+    public func application(_ application: UIApplication, open url: URL, options :[UIApplicationOpenURLOptionsKey: Any]) -> Bool {
             return (self.oauthManager?.authorizationManager?.application(application, open: url, options: options))!
     }
 
+    public func logout() {
+        let appIDAuthorizationManager = AppIDAuthorizationManager(appid: self)
+        appIDAuthorizationManager.logout()
+    }
+	
 }

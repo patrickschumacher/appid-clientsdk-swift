@@ -225,27 +225,32 @@ internal class TokenManager {
 
     public func validateToken(token: Token, key: SecKey, tokenResponseDelegate: TokenResponseDelegate, callback: @escaping () -> Void ) {
 
-        guard let jws = try? JWS(compactSerialization: token.raw), let _ = try? jws.validate(with: key),
+        let verifier = Verifier(verifyingAlgorithm: .RS256, publicKey: key)!
+        guard let jws = try? JWS(compactSerialization: token.raw), let _ = try? jws.validate(using: verifier),
             let clientId = registrationManager.getRegistrationDataString(name: AppIDConstants.client_id_String) else {
                 tokenResponseDelegate.onAuthorizationFailure(error: .authorizationFailure("Token verification failed"))
                 return
         }
-
+        
+        // Issuer must be cloud.ibm
         if token.issuer != Config.getIssuer(appId: appid) {
             tokenResponseDelegate.onAuthorizationFailure(error: .authorizationFailure("Token verification failed : invalid issuer"))
             return
         }
 
-        if token.audience != clientId {
-            tokenResponseDelegate.onAuthorizationFailure(error: .authorizationFailure("Token verification failed : invalid audience"))
-            return
-        }
-
+        // Tenants should match
         if token.tenant != appid.tenantId {
             tokenResponseDelegate.onAuthorizationFailure(error: .authorizationFailure("Token verification failed : invalid tenant"))
             return
         }
 
+        // The client ID must be the audience array
+        if token.audience?.contains(clientId) == false {
+            tokenResponseDelegate.onAuthorizationFailure(error: .authorizationFailure("Token verification failed : invalid audience"))
+            return
+        }
+        
+        // Token must be valid
         if  token.isExpired {
             tokenResponseDelegate.onAuthorizationFailure(error: .authorizationFailure("Token verification failed : expired"))
             return
@@ -297,5 +302,46 @@ internal class TokenManager {
         self.latestIdentityToken = nil
         self.latestRefreshToken = nil
     }
+    internal func sendLoggingRequest(accessToken:AccessToken?, idToken:IdentityToken?, eventName:String) {
+        if (accessToken == nil || idToken == nil) {
+            TokenManager.logger.debug(message: "No tokens found for sending logging request");
+            return;
+        }
 
+        let loggingUrl = Config.getServerUrl(appId: self.appid) + "/activity_logging"
+
+        let headers : [String: String] = [
+            "Authorization" : "Bearer " + accessToken!.raw,
+            "Content-Type" : "application/json"
+        ]
+        let jsonObject: [String: String] = [
+            "eventName" : eventName,
+            "id_token" :  idToken!.raw
+        ]
+        var body : Data
+        do {
+            body = try JSONSerialization.data(withJSONObject: jsonObject)
+        } catch {
+            TokenManager.logger.debug(message:"JSON error while creating logging request")
+            return;
+        }
+
+        let internalCallback: BMSCompletionHandler = {(response: Response?, error: Error?) in
+            if error != nil {
+                TokenManager.logger.error(message: "Error sending logging request");
+            } else {
+                TokenManager.logger.debug(message: "OK sending logging request");
+            }
+        }
+
+        let request = Request(url: loggingUrl, method: HttpMethod.POST, headers: headers, queryParameters: nil, timeout: 0)
+        request.timeout = BMSClient.sharedInstance.requestTimeout
+
+        // body.data(using: .utf8)*/
+        sendRequest(request: request, body: body, internalCallBack: internalCallback)
+    }
+    public func notifyLogout() {
+
+        sendLoggingRequest(accessToken:self.latestAccessToken, idToken:self.latestIdentityToken, eventName:"logout");
+    }
 }

@@ -59,11 +59,14 @@ public class RegistrationManagerTests: XCTestCase {
 
             XCTAssertEqual(request.resourceUrl, Config.getServerUrl(appId: AppID.sharedInstance) + "/clients")
             XCTAssertEqual(request.httpMethod, HttpMethod.POST)
-             XCTAssertEqual(request.headers, [Request.contentType : "application/json"])
+            XCTAssertEqual(request.headers, [Request.contentType : "application/json"])
             XCTAssertEqual(request.timeout, BMSClient.sharedInstance.requestTimeout)
-            let dataAsDictionary = try? Utils.parseJsonStringtoDictionary(String(data: registrationParamsAsData!, encoding: .utf8)!)
-            XCTAssertEqual(try? Utils.JSONStringify(dataAsDictionary as AnyObject), "{\"token_endpoint_auth_method\":\"client_secret_basic\",\"device_model\":\"iPhone\",\"software_version\":\"1.0\",\"client_type\":\"mobileapp\",\"device_os\":\"iOS\",\"software_id\":\"oded.dummyAppForKeyChain\",\"grant_types\":[\"authorization_code\",\"password\"],\"jwks\":{\"keys\":[{\"e\":\"AQAB\",\"kty\":\"RSA\",\"n\":\"AOH-nACU3cCopAz6_SzJuDtUyN4nHhnk9yfF9DFiGPctXPbwMXofZvd9WcYQqtw-w3WV_yhui9PrOVfVBhk6CmM=\"}]},\"redirect_uris\":[\"oded.dummyAppForKeyChain:\\/\\/mobile\\/callback\"],\"device_id\":\"" + (UIDevice.current.identifierForVendor?.uuidString)! + "\",\"response_types\":[\"code\"],\"device_os_version\":\"" + UIDevice.current.systemVersion + "\"}")
-
+            let expectedString =
+            "{\"grant_types\":[\"authorization_code\",\"password\"],\"device_os\":\"iOS\",\"device_os_version\":\"" + UIDevice.current.systemVersion + "\",\"client_type\":\"mobileapp\",\"device_id\":\"" + (UIDevice.current.identifierForVendor?.uuidString)! + "\",\"device_model\":\"iPhone\",\"jwks\":{\"keys\":[{\"n\":\"AOH-nACU3cCopAz6_SzJuDtUyN4nHhnk9yfF9DFiGPctXPbwMXofZvd9WcYQqtw-w3WV_yhui9PrOVfVBhk6CmM=\",\"kty\":\"RSA\",\"e\":\"AQAB\"}]},\"software_version\":\"1.0\",\"token_endpoint_auth_method\":\"client_secret_basic\",\"response_types\":[\"code\"],\"redirect_uris\":[\"oded.dummyAppForKeyChain:\\/\\/mobile\\/callback\"],\"software_id\":\"oded.dummyAppForKeyChain\"}"
+            let actualString = String(data: registrationParamsAsData!, encoding: .utf8)
+            let actual = try! Utils.parseJsonStringtoDictionary(String(data: registrationParamsAsData!, encoding: .utf8)!)
+            let expected = try! Utils.parseJsonStringtoDictionary(expectedString)
+            XCTAssertTrue(NSDictionary(dictionary: actual).isEqual(to: expected))
             internalCallBack(response, err)
         }
 
@@ -100,7 +103,9 @@ public class RegistrationManagerTests: XCTestCase {
         let callback = {(error: Error?) in
             XCTAssertNil(error)
             XCTAssertNotNil(self.oauthManager.registrationManager?.preferenceManager.getJSONPreference(name: AppIDConstants.registrationDataPref).get())
-            XCTAssertEqual(self.oauthManager.registrationManager?.preferenceManager.getJSONPreference(name: AppIDConstants.registrationDataPref).get(), try? Utils.JSONStringify(["key1": "val1", "key2": "val2"] as AnyObject))
+
+            let prefrences = self.oauthManager.registrationManager?.preferenceManager.getJSONPreference(name: AppIDConstants.registrationDataPref).getAsJSON()
+            XCTAssertTrue(NSDictionary(dictionary: prefrences!).isEqual(to: ["key1": "val1", "key2": "val2"]))
             XCTAssertEqual(self.oauthManager.registrationManager?.preferenceManager.getStringPreference(name: AppIDConstants.tenantPrefName).get(), "tenant1")
 
             expectation1.fulfill()

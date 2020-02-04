@@ -1,5 +1,5 @@
 # IBM Cloud App ID iOS Swift SDK
- 
+
 [![IBM Cloud powered][img-ibmcloud-powered]][url-ibmcloud]
 [![Travis][img-travis-master]][url-travis-master]
 [![Coveralls][img-coveralls-master]][url-coveralls-master]
@@ -77,7 +77,7 @@ class delegate : AuthorizationDelegate {
 AppID.sharedInstance.loginWidget?.launch(delegate: delegate())
 ```
 **Note**:
-* The Login widget default configuration use Facebook and Google as authentication options. If you configure only one of them the login widget will *not* launch and the user is redirected to the configured identity provder authentication screen.
+* By default, App ID is configured to use Facebook, Google, and Cloud Directory as identity providers. If you change your identity provider settings to provide only one option, then the Login Widget is not needed and will not display. The user is directed to your chosen identity provider's authentication screen.
 * When using Cloud Directory, and "Email verification" is configured to *not* allow users to sign-in without email verification, then the "onAuthorizationSuccess" of the "AuthorizationListener" will be invoked without tokens.
 
 
@@ -215,6 +215,12 @@ This API can be used only when the user is logged in using Cloud Directory ident
   AppID.sharedInstance.loginWidget?.launchChangePassword(delegate: delegate())
 ```
 
+### Logout
+Call the logout function in order to clear the stored tokens.
+```swift
+ AppID.sharedInstance.logout()
+```
+
 ### User Profile
 
 Using the App ID UserProfileManager, you are able to create, read, and delate attributes in a user's profile as well as retrieve additional info about a user.
@@ -277,6 +283,15 @@ request.send(completionHandler: {(response:Response?, error:Error?) in
 })
 ```
 
+## Setting Keychain Accessibility
+In a rare case your application requires refreshing App ID tokens while running in the background you can use this API to set the required keychain permissions.
+```
+AppID.secAttrAccess = .accessibleAlways
+```
+
+## Got Questions?
+Join us on [Slack](https://www.ibm.com/cloud/blog/announcements/get-help-with-ibm-cloud-app-id-related-questions-on-slack) and chat with our dev team.
+
 ## License
 This package contains code licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 and may also view the License in the LICENSE file within this package.
 
@@ -301,4 +316,3 @@ This package contains code licensed under the Apache License, Version 2.0 (the "
 
 [img-codacy]: https://api.codacy.com/project/badge/Grade/d41f8f069dd343769fcbdb55089561fc
 [url-codacy]: https://www.codacy.com/app/ibm-cloud-security/appid-clientsdk-swift
-
